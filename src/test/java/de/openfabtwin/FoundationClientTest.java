@@ -2,7 +2,6 @@ package de.openfabtwin;
 
 import de.openfabtwin.generated.model.AuthGET;
 import de.openfabtwin.auth.FoundationClient;
-import de.openfabtwin.BcfApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
