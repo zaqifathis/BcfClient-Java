@@ -1,11 +1,14 @@
 package de.openfabtwin;
 
 import de.openfabtwin.auth.FoundationClient;
+import de.openfabtwin.domain.Topic;
+import de.openfabtwin.domain.TopicFilter;
 import de.openfabtwin.generated.model.*;
 import de.openfabtwin.mapper.ExtensionMapper;
 import de.openfabtwin.mapper.ProjectMapper;
 import de.openfabtwin.domain.Extensions;
 import de.openfabtwin.domain.Project;
+import de.openfabtwin.mapper.TopicMapper;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -136,7 +139,36 @@ public class BcfClient {
     // TOPIC
     // -------------------------------------------------------------------------
 
+    /** POST /projects/{projectId}/topics */
+    public Topic createTopic(String projectId, TopicPOST payload) {
+        TopicGET raw = http.post(url("/projects/" + projectId + "/topics"), payload, TopicGET.class);
+        return TopicMapper.toDomain(raw);
+    }
 
+    /** DELETE /projects/{projectId}/topics/{topicId} */
+    public void deleteTopic(String projectId, String topicId) {
+        http.delete(url("/projects/" + projectId + "/topics/" + topicId));
+    }
+
+    /** GET /projects/{projectId}/topics/{topicId} */
+    public Topic getTopic(String projectId, String topicId){
+        TopicGET raw = http.get(url("/projects/" + projectId + "/topics/" + topicId), TopicGET.class);
+        return TopicMapper.toDomain(raw);
+    }
+
+    /** GET /projects/{projectId}/topics */
+    public List<Topic> getTopics(String projectId, TopicFilter filter){
+        String endpoint = "/projects/" + projectId + "/topics";
+        if (filter != null) endpoint += filter.toQueryString();
+        TopicGET[] raw = http.get(url(endpoint), TopicGET[].class);
+        return TopicMapper.toDomainList(raw);
+    }
+
+    /** PUT /projects/{projectId}/topics/{topicId}  */
+    public Topic updateTopic(String projectId, String topicId, TopicPUT payload){
+        TopicGET raw = http.put(url("/projects/" + projectId + "/topics/" + topicId), payload, TopicGET.class);
+        return TopicMapper.toDomain(raw);
+    }
 
     // -------------------------------------------------------------------------
     // URL builder

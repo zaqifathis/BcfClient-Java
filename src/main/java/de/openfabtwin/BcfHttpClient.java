@@ -2,6 +2,7 @@ package de.openfabtwin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.openfabtwin.auth.FoundationClient;
+import org.openapitools.jackson.nullable.JsonNullableModule;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,7 +34,7 @@ public class BcfHttpClient {
     public BcfHttpClient(FoundationClient foundation, HttpClient httpClient) {
         this.foundation   = foundation;
         this.httpClient   = httpClient;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper().registerModule(new JsonNullableModule());
     }
 
     // -------------------------------------------------------------------------
@@ -94,21 +95,32 @@ public class BcfHttpClient {
             HttpResponse<String> response = httpClient.send(
                     request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() == 204 || responseType == Void.class) {
-                return null; // no content
+            int status = response.statusCode();
+
+            if (status == 200 && responseType == Void.class) return null;
+            if (status == 204) return null;
+
+            if (status == 200 || status == 201) {
+                return objectMapper.readValue(response.body(), responseType);
             }
-
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new BcfApiException(response.statusCode(),
-                        "HTTP " + response.statusCode() + " for: " + url);
-            }
-
-            return objectMapper.readValue(response.body(), responseType);
-
+            throw new BcfApiException(status, errorMessage(status, url));
+        } catch (BcfApiException e) {
+            throw e;
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BcfApiException("Request failed for: " + url + " — " + e.getMessage());
         }
+    }
+
+    private String errorMessage(int status, String url) {
+        return switch (status) {
+            case 401 -> "Unauthorized — check your login credentials. URL: " + url;
+            case 403 -> "Forbidden — you do not have permission for this operation. URL: " + url;
+            case 404 -> "Not found — resource does not exist. URL: " + url;
+            case 409 -> "Conflict — GUID already exists on the server. URL: " + url;
+            case 500 -> "Server error — something went wrong on the BCF server. URL: " + url;
+            default  -> "HTTP " + status + " for: " + url;
+        };
     }
 
     /**
