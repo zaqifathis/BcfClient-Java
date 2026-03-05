@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
  * OAuthReceiver — temporary local HTTP server on localhost:8081
  * Purpose:
  * - Opens for ONE request only
- * - Catches the OAuth redirect: GET /?code=xxx&state=yyy
  * - Extracts auth code + state
  * - Shuts itself down immediately after
  *

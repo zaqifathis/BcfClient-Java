@@ -3,28 +3,28 @@ package de.openfabtwin.domain;
 import lombok.Getter;
 
 @Getter
-public class TopicFilter {
+public class Filter {
     private String filter;
     private String orderBy;
     private Integer top;
     private Integer skip;
 
-    public TopicFilter filter(String filter) {
+    public Filter filter(String filter) {
         this.filter = filter;
         return this;
     }
 
-    public TopicFilter orderBy(String orderBy) {
+    public Filter orderBy(String orderBy) {
         this.orderBy = orderBy;
         return this;
     }
 
-    public TopicFilter top(int top) {
+    public Filter top(int top) {
         this.top = top;
         return this;
     }
 
-    public TopicFilter skip(int skip) {
+    public Filter skip(int skip) {
         this.skip = skip;
         return this;
     }

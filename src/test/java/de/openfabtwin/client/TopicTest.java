@@ -1,7 +1,7 @@
 package de.openfabtwin.client;
 
 import de.openfabtwin.domain.Topic;
-import de.openfabtwin.domain.TopicFilter;
+import de.openfabtwin.domain.Filter;
 import de.openfabtwin.BcfApiException;
 import de.openfabtwin.generated.model.TopicPOST;
 import de.openfabtwin.generated.model.TopicPUT;
@@ -69,7 +69,7 @@ public class TopicTest extends BcfClientTestBase {
     @Test
     void shouldApplyTopicFilter() throws Exception {
         stubResponse(200, "[" + TOPIC_JSON + "]");
-        TopicFilter filter = new TopicFilter()
+        Filter filter = new Filter()
                 .orderBy("creation_date")
                 .top(10)
                 .skip(0);

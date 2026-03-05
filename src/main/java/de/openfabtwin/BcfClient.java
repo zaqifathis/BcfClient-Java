@@ -1,14 +1,8 @@
 package de.openfabtwin;
 
 import de.openfabtwin.auth.FoundationClient;
-import de.openfabtwin.domain.Topic;
-import de.openfabtwin.domain.TopicFilter;
+import de.openfabtwin.domain.*;
 import de.openfabtwin.generated.model.*;
-import de.openfabtwin.mapper.ExtensionMapper;
-import de.openfabtwin.mapper.ProjectMapper;
-import de.openfabtwin.domain.Extensions;
-import de.openfabtwin.domain.Project;
-import de.openfabtwin.mapper.TopicMapper;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +11,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -64,6 +59,7 @@ public class BcfClient {
     // -------------------------------------------------------------------------
     // Version
     // -------------------------------------------------------------------------
+
     public void resolveVersion() {
         VersionsGET versionsGET = getVersions();
 
@@ -113,36 +109,50 @@ public class BcfClient {
 
     /** GET /projects */
     public List<Project> getProjects() {
-        ProjectGET[] raw = http.get(url("/projects"), ProjectGET[].class);
-        return ProjectMapper.toDomainList(raw);
+        Project[] raw = http.get(url("/projects"), Project[].class);
+        return Arrays.asList(raw);
     }
 
     /** GET /projects/{projectId} */
     public Project getProject(String projectId) {
-        ProjectGET raw = http.get(url("/projects/" + projectId), ProjectGET.class);
-        return ProjectMapper.toDomain(raw);
+        return http.get(url("/projects/" + projectId), Project.class);
     }
 
     /** PUT /projects/{projectId} */
     public Project updateProject(String projectId, ProjectPUT payload) {
-        ProjectGET raw = http.put(url("/projects/" + projectId), payload, ProjectGET.class);
-        return ProjectMapper.toDomain(raw);
+        return http.put(url("/projects/" + projectId), payload, Project.class);
     }
 
     /** GET /projects/{projectId}/extensions */
-    public Extensions getExtension(String projectId){
-        ExtensionsGET raw = http.get(url("/projects/" + projectId + "/extensions"), ExtensionsGET.class);
-        return ExtensionMapper.toDomain(raw);
+    public Extensions getExtension(String projectId) {
+        return http.get(url("/projects/" + projectId + "/extensions"), Extensions.class);
     }
 
     // -------------------------------------------------------------------------
     // TOPIC
     // -------------------------------------------------------------------------
 
+    /** GET /projects/{projectId}/topics - Optional: Filter */
+    public List<Topic> getTopics(String projectId, Filter filter) {
+        String endpoint = "/projects/" + projectId + "/topics";
+        if (filter != null) endpoint += filter.toQueryString();
+        Topic[] raw = http.get(url(endpoint), Topic[].class);
+        return Arrays.asList(raw);
+    }
+
+    /** GET /projects/{projectId}/topics/{topicId} */
+    public Topic getTopic(String projectId, String topicId) {
+        return http.get(url("/projects/" + projectId + "/topics/" + topicId), Topic.class);
+    }
+
     /** POST /projects/{projectId}/topics */
     public Topic createTopic(String projectId, TopicPOST payload) {
-        TopicGET raw = http.post(url("/projects/" + projectId + "/topics"), payload, TopicGET.class);
-        return TopicMapper.toDomain(raw);
+        return http.post(url("/projects/" + projectId + "/topics"), payload, Topic.class);
+    }
+
+    /** PUT /projects/{projectId}/topics/{topicId} */
+    public Topic updateTopic(String projectId, String topicId, TopicPUT payload) {
+        return http.put(url("/projects/" + projectId + "/topics/" + topicId), payload, Topic.class);
     }
 
     /** DELETE /projects/{projectId}/topics/{topicId} */
@@ -150,24 +160,36 @@ public class BcfClient {
         http.delete(url("/projects/" + projectId + "/topics/" + topicId));
     }
 
-    /** GET /projects/{projectId}/topics/{topicId} */
-    public Topic getTopic(String projectId, String topicId){
-        TopicGET raw = http.get(url("/projects/" + projectId + "/topics/" + topicId), TopicGET.class);
-        return TopicMapper.toDomain(raw);
+    // -------------------------------------------------------------------------
+    // COMMENT
+    // -------------------------------------------------------------------------
+
+    /** POST /projects/{projectId}/topics/{topicId}/comments */
+    public Comment createComment(String projectId, String topicId, CommentPOST payload) {
+        return http.post(url("/projects/" + projectId + "/topics/" + topicId + "/comments"), payload, Comment.class);
     }
 
-    /** GET /projects/{projectId}/topics */
-    public List<Topic> getTopics(String projectId, TopicFilter filter){
-        String endpoint = "/projects/" + projectId + "/topics";
+    /** DELETE /projects/{projectId}/topics/{topicId}/comments/{commentId} */
+    public void deleteComment(String projectId, String topicId, String commentId) {
+        http.delete(url("/projects/" + projectId + "/topics/" + topicId + "/comments/" + commentId));
+    }
+
+    /** GET /projects/{projectId}/topics/{topicId}/comments/{commentId} */
+    public Comment getComment(String projectId, String topicId, String commentId) {
+        return http.get(url("/projects/" + projectId + "/topics/" + topicId + "/comments/" + commentId), Comment.class);
+    }
+
+    /** GET /projects/{projectId}/topics/{topicId}/comments - Optional: Filter */
+    public List<Comment> getComments(String projectId, String topicId, Filter filter) {
+        String endpoint = "/projects/" + projectId + "/topics/" + topicId + "/comments";
         if (filter != null) endpoint += filter.toQueryString();
-        TopicGET[] raw = http.get(url(endpoint), TopicGET[].class);
-        return TopicMapper.toDomainList(raw);
+        Comment[] raw = http.get(url(endpoint), Comment[].class);
+        return Arrays.asList(raw);
     }
 
-    /** PUT /projects/{projectId}/topics/{topicId}  */
-    public Topic updateTopic(String projectId, String topicId, TopicPUT payload){
-        TopicGET raw = http.put(url("/projects/" + projectId + "/topics/" + topicId), payload, TopicGET.class);
-        return TopicMapper.toDomain(raw);
+    /** PUT /projects/{projectId}/topics/{topicId}/comments/{commentId}  */
+    public Comment updateComment(String projectId, String topicId, String commentId, CommentPUT payload) {
+        return http.put(url("/projects/" + projectId + "/topics/" + topicId + "/comments/" + commentId), payload, Comment.class);
     }
 
     // -------------------------------------------------------------------------
