@@ -3,16 +3,16 @@ package de.openfabtwin;
 import lombok.Getter;
 
 @Getter
-public class BcfApiException extends RuntimeException {
+public class BcfException extends RuntimeException {
 
     private final int statusCode;
 
-    public BcfApiException(String message) {
+    public BcfException(String message) {
         super(message);
         this.statusCode = -1;
     }
 
-    public BcfApiException(int statusCode, String message) {
+    public BcfException(int statusCode, String message) {
         super(message);
         this.statusCode = statusCode;
     }

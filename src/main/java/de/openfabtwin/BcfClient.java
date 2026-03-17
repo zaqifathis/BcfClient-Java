@@ -1,32 +1,18 @@
 package de.openfabtwin;
 
 import de.openfabtwin.auth.FoundationClient;
-import de.openfabtwin.domain.Topic;
-import de.openfabtwin.domain.TopicFilter;
+import de.openfabtwin.client.*;
+import de.openfabtwin.generated.invoker.ApiClient;
 import de.openfabtwin.generated.model.*;
-import de.openfabtwin.mapper.ExtensionMapper;
-import de.openfabtwin.mapper.ProjectMapper;
-import de.openfabtwin.domain.Extensions;
-import de.openfabtwin.domain.Project;
-import de.openfabtwin.mapper.TopicMapper;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
 
-/**
- * Usage:
- *   FoundationClient foundation = new FoundationClient(baseUrl, clientId, clientSecret);
- *   foundation.login();
- *   BcfClient bcf = new BcfClient(foundation);
- *   bcf.resolveVersion();
- */
-
+@Getter
 public class BcfClient {
 
     private static final String VERSIONS_ENDPOINT = "foundation/versions";
@@ -34,36 +20,27 @@ public class BcfClient {
 
     private final FoundationClient foundation;
     private final String targetVersion;
-    private final BcfHttpClient    http;
-    private final HttpClient plainHttpClient; // no auth — for versions only
+    private final HttpClient plainHttpClient;
 
-    @Getter
-    @Setter
     private String bcfBaseUrl;
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+    private ProjectClient project;
+    private TopicClient topic;
+    private CommentClient comment;
+    private ViewpointClient viewpoint;
+    private DocumentReferencesClient documentReferences;
+    private DocumentsClient documents;
+    private EventClient events;
+    private FilesClient files;
+    private RelatedTopicsClient relatedTopics;
+    private SnippetsClient snippets;
 
-    /** Production */
     public BcfClient(FoundationClient foundation, String targetVersion) {
-        this.foundation = foundation;
-        this.targetVersion = targetVersion;
-        this.http = new BcfHttpClient(foundation);
-        this.plainHttpClient = HttpClient.newHttpClient();
-    }
-
-    /** Test — inject BcfHttpClient */
-    public BcfClient(FoundationClient foundation, String targetVersion, BcfHttpClient http) {
         this.foundation      = foundation;
         this.targetVersion   = targetVersion;
-        this.http            = http;
         this.plainHttpClient = HttpClient.newHttpClient();
     }
 
-    // -------------------------------------------------------------------------
-    // Version
-    // -------------------------------------------------------------------------
     public void resolveVersion() {
         VersionsGET versionsGET = getVersions();
 
@@ -71,7 +48,7 @@ public class BcfClient {
                 .filter(v -> TARGET_API_ID.equals(v.getApiId())
                         && targetVersion.equals(v.getVersionId()))
                 .findFirst()
-                .orElseThrow(() -> new BcfApiException(
+                .orElseThrow(() -> new BcfException(
                         "Server does not support BCF " + targetVersion
                                 + ". Available: " + versionsGET.getVersions().stream()
                                 .map(v -> v.getApiId() + " " + v.getVersionId())
@@ -79,105 +56,41 @@ public class BcfClient {
                 ));
 
         this.bcfBaseUrl = bcf.getApiBaseUrl();
+
+        ApiClient apiClient = GeneratedApiClientFactory.create(foundation, bcfBaseUrl);
+        this.project   = new ProjectClient(apiClient, targetVersion);
+        this.topic     = new TopicClient(apiClient, targetVersion);
+        this.comment   = new CommentClient(apiClient, targetVersion);
+        this.viewpoint = new ViewpointClient(apiClient, targetVersion);
+        this.documentReferences = new DocumentReferencesClient(apiClient, targetVersion);
+        this.documents = new DocumentsClient(apiClient, targetVersion);
+        this.events = new EventClient(apiClient, targetVersion);
+        this.files = new FilesClient(apiClient, targetVersion);
+        this.relatedTopics = new RelatedTopicsClient(apiClient, targetVersion);
+        this.snippets = new SnippetsClient(apiClient, targetVersion);
     }
 
     public VersionsGET getVersions() {
         String url = foundation.getBaseUrl() + VERSIONS_ENDPOINT;
-
         try {
             HttpResponse<String> response = plainHttpClient.send(
                     HttpRequest.newBuilder()
-                            .uri(URI.create(url))
-                            .GET()
+                            .uri(URI.create(url)).GET()
                             .header("Accept", "application/json")
                             .build(),
-                    HttpResponse.BodyHandlers.ofString()
-            );
+                    HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
-                throw new BcfApiException(response.statusCode(),
+            if (response.statusCode() != 200)
+                throw new BcfException(response.statusCode(),
                         "Failed to fetch versions — HTTP " + response.statusCode());
-            }
 
-            return http.deserialize(response.body(), VersionsGET.class);
+            return ApiClient.createDefaultObjectMapper()
+                    .readValue(response.body(), VersionsGET.class);
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BcfApiException("Failed to fetch versions: " + e.getMessage());
+            throw new BcfException("Failed to fetch versions: " + e.getMessage());
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // PROJECT
-    // -------------------------------------------------------------------------
-
-    /** GET /projects */
-    public List<Project> getProjects() {
-        ProjectGET[] raw = http.get(url("/projects"), ProjectGET[].class);
-        return ProjectMapper.toDomainList(raw);
-    }
-
-    /** GET /projects/{projectId} */
-    public Project getProject(String projectId) {
-        ProjectGET raw = http.get(url("/projects/" + projectId), ProjectGET.class);
-        return ProjectMapper.toDomain(raw);
-    }
-
-    /** PUT /projects/{projectId} */
-    public Project updateProject(String projectId, ProjectPUT payload) {
-        ProjectGET raw = http.put(url("/projects/" + projectId), payload, ProjectGET.class);
-        return ProjectMapper.toDomain(raw);
-    }
-
-    /** GET /projects/{projectId}/extensions */
-    public Extensions getExtension(String projectId){
-        ExtensionsGET raw = http.get(url("/projects/" + projectId + "/extensions"), ExtensionsGET.class);
-        return ExtensionMapper.toDomain(raw);
-    }
-
-    // -------------------------------------------------------------------------
-    // TOPIC
-    // -------------------------------------------------------------------------
-
-    /** POST /projects/{projectId}/topics */
-    public Topic createTopic(String projectId, TopicPOST payload) {
-        TopicGET raw = http.post(url("/projects/" + projectId + "/topics"), payload, TopicGET.class);
-        return TopicMapper.toDomain(raw);
-    }
-
-    /** DELETE /projects/{projectId}/topics/{topicId} */
-    public void deleteTopic(String projectId, String topicId) {
-        http.delete(url("/projects/" + projectId + "/topics/" + topicId));
-    }
-
-    /** GET /projects/{projectId}/topics/{topicId} */
-    public Topic getTopic(String projectId, String topicId){
-        TopicGET raw = http.get(url("/projects/" + projectId + "/topics/" + topicId), TopicGET.class);
-        return TopicMapper.toDomain(raw);
-    }
-
-    /** GET /projects/{projectId}/topics */
-    public List<Topic> getTopics(String projectId, TopicFilter filter){
-        String endpoint = "/projects/" + projectId + "/topics";
-        if (filter != null) endpoint += filter.toQueryString();
-        TopicGET[] raw = http.get(url(endpoint), TopicGET[].class);
-        return TopicMapper.toDomainList(raw);
-    }
-
-    /** PUT /projects/{projectId}/topics/{topicId}  */
-    public Topic updateTopic(String projectId, String topicId, TopicPUT payload){
-        TopicGET raw = http.put(url("/projects/" + projectId + "/topics/" + topicId), payload, TopicGET.class);
-        return TopicMapper.toDomain(raw);
-    }
-
-    // -------------------------------------------------------------------------
-    // URL builder
-    // -------------------------------------------------------------------------
-    private String url(String endpoint) {
-        if (bcfBaseUrl == null) {
-            throw new BcfApiException("Call resolveVersion() before making BCF API calls.");
-        }
-        return bcfBaseUrl + endpoint;
     }
 
 }

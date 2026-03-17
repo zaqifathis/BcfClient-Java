@@ -2,7 +2,7 @@ package de.openfabtwin.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import de.openfabtwin.BcfApiException;
+import de.openfabtwin.BcfException;
 import de.openfabtwin.generated.model.AuthGET;
 
 import java.awt.Desktop;
@@ -18,13 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Flow:
- *   1. getAuthMethods()     → GET /foundation/1.1/auth → check supported flows
- *   2. login()              → open browser → OAuthReceiver catches redirect code
- *   3. exchangeCodeForToken → POST to token endpoint → store access + refresh token
- *   4. getAccessToken()     → returns valid token, auto-refreshes if expired
- */
 public class FoundationClient {
 
     private static final String REQUIRED_FLOW = "authorization_code_grant";
@@ -48,21 +41,13 @@ public class FoundationClient {
     private final HttpClient   httpClient;
     private final ObjectMapper objectMapper;
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+    // Constructor -------------------------------------------------------------------------
 
-    /** Production — creates its own HttpClient */
     public FoundationClient(String baseUrl, String clientId, String clientSecret) {
-        this(baseUrl, clientId, clientSecret, HttpClient.newHttpClient());
-    }
-
-    /** Test — inject HttpClient so unit tests can stub responses */
-    public FoundationClient(String baseUrl, String clientId, String clientSecret, HttpClient httpClient) {
         this.baseUrl      = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         this.clientId     = clientId;
         this.clientSecret = clientSecret;
-        this.httpClient   = httpClient;
+        this.httpClient   = HttpClient.newHttpClient();
         this.objectMapper = new ObjectMapper();
 
         // start expired — forces login on first getAccessToken()
@@ -70,9 +55,7 @@ public class FoundationClient {
         this.refreshTokenExpiresOn = Long.MAX_VALUE;
     }
 
-    // -------------------------------------------------------------------------
-    // PUBLIC: getAccessToken
-    // -------------------------------------------------------------------------
+    // PUBLIC: getAccessToken -------------------------------------------------------------------------
 
     public String getAccessToken() {
         long now = epochSeconds();
@@ -87,9 +70,7 @@ public class FoundationClient {
         return accessToken;
     }
 
-    // -------------------------------------------------------------------------
-    // STEP 1: discover auth methods
-    // -------------------------------------------------------------------------
+    // STEP 1: discover auth methods -------------------------------------------------------------------------
 
     public List<String> getAuthMethods() {
         return getAuthInfo().getSupportedOauth2Flows();
@@ -106,7 +87,7 @@ public class FoundationClient {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                throw new BcfApiException(response.statusCode(),
+                throw new BcfException(response.statusCode(),
                         "Failed to fetch auth info — HTTP " + response.statusCode());
             }
 
@@ -114,13 +95,11 @@ public class FoundationClient {
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BcfApiException("Cannot reach BCF server: " + baseUrl + AUTH_ENDPOINT);
+            throw new BcfException("Cannot reach BCF server: " + baseUrl + AUTH_ENDPOINT);
         }
     }
 
-    // -------------------------------------------------------------------------
-    // STEP 2: login
-    // -------------------------------------------------------------------------
+    // STEP 2: login -------------------------------------------------------------------------
 
     public void login() {
         AuthGET authInfo = getAuthInfo();
@@ -140,15 +119,13 @@ public class FoundationClient {
         try {
             code = receiver.waitForCode(state);
         } catch (IOException e) {
-            throw new BcfApiException("Failed to start OAuth receiver: " + e.getMessage());
+            throw new BcfException("Failed to start OAuth receiver: " + e.getMessage());
         }
 
         exchangeCodeForToken(code, redirectUri);
     }
 
-    // -------------------------------------------------------------------------
-    // STEP 3: token exchange + refresh
-    // -------------------------------------------------------------------------
+    // STEP 3: token exchange + refresh -------------------------------------------------------------------------
 
     private void exchangeCodeForToken(String code, String redirectUri) {
         String body = "grant_type=authorization_code"
@@ -175,7 +152,7 @@ public class FoundationClient {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                throw new BcfApiException(response.statusCode(),
+                throw new BcfException(response.statusCode(),
                         "Token exchange failed — HTTP " + response.statusCode());
             }
 
@@ -183,7 +160,7 @@ public class FoundationClient {
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BcfApiException("Token request failed: " + e.getMessage());
+            throw new BcfException("Token request failed: " + e.getMessage());
         }
     }
 
@@ -202,17 +179,15 @@ public class FoundationClient {
             }
 
         } catch (IOException e) {
-            throw new BcfApiException("Failed to parse token response: " + e.getMessage());
+            throw new BcfException("Failed to parse token response: " + e.getMessage());
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Utilities
-    // -------------------------------------------------------------------------
+    // Utilities -------------------------------------------------------------------------
 
     private void validateAuthFlow(List<String> supportedFlows) {
         if (supportedFlows == null || !supportedFlows.contains(REQUIRED_FLOW)) {
-            throw new BcfApiException(
+            throw new BcfException(
                     "BCF server does not support 'authorization_code_grant'. Supported: " + supportedFlows);
         }
     }
@@ -240,7 +215,7 @@ public class FoundationClient {
                 Runtime.getRuntime().exec(new String[]{"xdg-open", url});
             }
         } catch (IOException e) {
-            throw new BcfApiException("Cannot open browser: " + e.getMessage());
+            throw new BcfException("Cannot open browser: " + e.getMessage());
         }
     }
 
@@ -250,22 +225,5 @@ public class FoundationClient {
 
     private long epochSeconds() {
         return System.currentTimeMillis() / 1000;
-    }
-
-    // -------------------------------------------------------------------------
-    // Getters —
-    // -------------------------------------------------------------------------
-
-    /**
-     * Test-only: inject token state directly.
-     * Avoids needing a real login in unit tests.
-     */
-    public void setTokensForTest(String accessToken, String refreshToken,
-                                 long expiresInSeconds, long refreshExpiresInSeconds) {
-        long now = epochSeconds();
-        this.accessToken           = accessToken;
-        this.refreshToken          = refreshToken;
-        this.accessTokenExpiresOn  = now + expiresInSeconds;
-        this.refreshTokenExpiresOn = now + refreshExpiresInSeconds;
     }
 }
