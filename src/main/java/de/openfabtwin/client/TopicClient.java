@@ -38,9 +38,9 @@ public class TopicClient {
         } catch (ApiException e) {throw new BcfException(e.getCode(), e.getMessage());}
     }
 
-    public List<TopicGET> getTopics(String projectId, String $filter, String $orderby, String $top, String $skip) {
+    public List<TopicGET> getTopics(String projectId, FullODataQuery query) {
         try {
-            return api.getTopics(version, projectId, $filter, $orderby, $top, $skip);
+            return api.getTopics(version, projectId, query.$filter, query.$orderby, query.$top, query.$skip);
         } catch (ApiException e) {throw new BcfException(e.getCode(), e.getMessage());}
     }
 

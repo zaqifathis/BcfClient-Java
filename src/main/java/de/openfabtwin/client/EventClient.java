@@ -20,28 +20,28 @@ public class EventClient {
     }
 
     // Comment events
-    public List<CommentEventGET> getCommentEvent(String projectId, String topicId, String commentId, String $top, String $skip, String $filter, String $orderby) {
+    public List<CommentEventGET> getCommentEvent(String projectId, String topicId, String commentId, FullODataQuery query) {
         try {
-            return api.getCommentEvent(version, projectId,topicId,commentId, $top, $skip, $filter, $orderby);
+            return api.getCommentEvent(version, projectId,topicId,commentId, query.$top, query.$skip, query.$filter, query.$orderby);
         } catch (ApiException e) { throw new BcfException(e.getCode(), e.getMessage());}
     }
 
-    public List<CommentEventGET> getCommentEvents(String projectId, String $top, String $skip, String $filter, String $orderby) {
+    public List<CommentEventGET> getCommentEvents(String projectId, FullODataQuery query) {
         try {
-            return api.getCommentEvents(version, projectId, $top, $skip, $filter, $orderby);
+            return api.getCommentEvents(version, projectId, query.$top, query.$skip, query.$filter, query.$orderby);
         } catch (ApiException e) { throw new BcfException(e.getCode(), e.getMessage());}
     }
 
     // Topic events
-    public List<TopicEventGET> getEvents(String projectId, String $top, String $skip, String $filter, String $orderby) {
+    public List<TopicEventGET> getEvents(String projectId, FullODataQuery query) {
         try {
-            return api.getEvents(version, projectId, $top, $skip, $filter, $orderby);
+            return api.getEvents(version, projectId, query.$top, query.$skip, query.$filter, query.$orderby);
         } catch (ApiException e) { throw new BcfException(e.getCode(), e.getMessage());}
     }
 
-    public List<TopicEventGET> getTopicEvents(String projectId, String topicId, String $top, String $skip, String $filter, String $orderby){
+    public List<TopicEventGET> getTopicEvents(String projectId, String topicId, FullODataQuery query){
         try {
-            return api.getTopicEvents(version, projectId, topicId, $top, $skip, $filter, $orderby);
+            return api.getTopicEvents(version, projectId, topicId, query.$top, query.$skip, query.$filter, query.$orderby);
         } catch (ApiException e) { throw new BcfException(e.getCode(), e.getMessage());}
     }
 

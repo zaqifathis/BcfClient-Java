@@ -4,7 +4,6 @@ import de.openfabtwin.auth.FoundationClient;
 import de.openfabtwin.client.*;
 import de.openfabtwin.generated.invoker.ApiClient;
 import de.openfabtwin.generated.model.*;
-import lombok.Getter;
 
 import java.io.IOException;
 import java.net.URI;
@@ -12,7 +11,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-@Getter
 public class BcfClient {
 
     private static final String VERSIONS_ENDPOINT = "foundation/versions";
@@ -22,18 +20,16 @@ public class BcfClient {
     private final String targetVersion;
     private final HttpClient plainHttpClient;
 
-    private String bcfBaseUrl;
-
-    private ProjectClient project;
-    private TopicClient topic;
-    private CommentClient comment;
-    private ViewpointClient viewpoint;
-    private DocumentReferencesClient documentReferences;
-    private DocumentsClient documents;
-    private EventClient events;
-    private FilesClient files;
-    private RelatedTopicsClient relatedTopics;
-    private SnippetsClient snippets;
+    public ProjectClient project;
+    public TopicClient topic;
+    public CommentClient comment;
+    public ViewpointClient viewpoint;
+    public DocumentReferencesClient documentReferences;
+    public DocumentsClient documents;
+    public EventClient events;
+    public FilesClient files;
+    public RelatedTopicsClient relatedTopics;
+    public SnippetsClient snippets;
 
     public BcfClient(FoundationClient foundation, String targetVersion) {
         this.foundation      = foundation;
@@ -55,9 +51,7 @@ public class BcfClient {
                                 .toList()
                 ));
 
-        this.bcfBaseUrl = bcf.getApiBaseUrl();
-
-        ApiClient apiClient = GeneratedApiClientFactory.create(foundation, bcfBaseUrl);
+        ApiClient apiClient = GeneratedApiClientFactory.create(foundation);
         this.project   = new ProjectClient(apiClient, targetVersion);
         this.topic     = new TopicClient(apiClient, targetVersion);
         this.comment   = new CommentClient(apiClient, targetVersion);

@@ -38,9 +38,9 @@ public class CommentClient {
         } catch (ApiException e) {throw new BcfException(e.getCode(), e.getMessage());}
     }
 
-    public List<CommentGET> getTopicComment(String projectId, String topicId, String $filter, String $orderby) {
+    public List<CommentGET> getTopicComment(String projectId, String topicId, ODataQuery query) {
         try {
-            return api.getTopicComment(version, projectId, topicId, $filter, $orderby);
+            return api.getTopicComment(version, projectId, topicId, query.$filter, query.$orderby);
         } catch (ApiException e) {throw new BcfException(e.getCode(), e.getMessage());}
     }
 

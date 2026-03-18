@@ -38,15 +38,13 @@ bcf.resolveVersion(); // discovers the BCF base URL and initializes all sub-clie
 
 ```java
 // Projects
-List<ProjectGET> projects = bcf.getProject().getAllProjects();
+List<ProjectGET> projects = bcf.project.getAllProjects();
 
 // Topics
-TopicGET topic = bcf.getTopic().createTopic(projectId, payload);
-List<TopicGET> topics = bcf.getTopic().getTopics(projectId, null, null, null, null);
+TopicGET topic = bcf.topic.createTopic(projectId, payload);
 
-// Comments, Viewpoints, Documents, Events, Files, and more
-bcf.getComment().getComments(projectId, topicId);
-bcf.getViewpoint().getViewpoints(projectId, topicId);
+// Comments
+CommentGET comment = bcf.comment.getComments(projectId, topicId);
 ```
 
 ## Project Structure
@@ -73,6 +71,10 @@ src/main/java/de/openfabtwin/
 └── generated/                      # OpenAPI-generated models and API stubs
 ```
 
-## License
+## Acknowledgment
+This work is funded by the German Federal Ministry for Economic Affairs and Climate Action
+(BMWK) through the central innovation programme for small and medium-sized enterprises
+(ZIM-program), with funding provided under grant number 16KN106902.
 
-MIT
+
+
